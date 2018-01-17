@@ -19,36 +19,43 @@ void lattice_structure()
 {
     int i, j;
     num = 0;
-    for (i = 0; i < (L - 1) / 2; i++)
-        for (j = 0; j < (L - 1) / 2; j++)
-        {
-            if (unirnd(eng) < q)
-            {
-                lattice[2 * i][j + 1][0] = &spins[num];
-                lattice[2 * i][j + 1][1] = &spins[num];
-                num++;
-            }
-            else
-            {
-                lattice[2 * i][j + 1][0] = &spins[num];
-                num++;
-                lattice[2 * i][j + 1][1] = &spins[num];
-                num++;
-            }
-            if (unirnd(eng) < q)
-            {
-                lattice[2 * i + 1][j][0] = &spins[num];
-                lattice[2 * i + 1][j][1] = &spins[num];
-                num++;
-            }
-            else
-            {
-                lattice[2 * i + 1][j][0] = &spins[num];
-                num++;
-                lattice[2 * i + 1][j][1] = &spins[num];
-                num++;
-            }
-        }
+	for (i = 0; i < (L - 1) / 2; i++)
+	{
+		lattice[2 * i][0][0] = &spins[num];
+		lattice[2 * i][0][1] = &spins[num];
+		num++;
+		for (j = 1; j < (L + 1) / 2; j++)
+			if (unirnd(eng) < q)
+			{
+				lattice[2 * i][j][0] = &spins[num];
+				lattice[2 * i][j][1] = &spins[num];
+				num++;
+			}
+			else
+			{
+				lattice[2 * i][j][0] = &spins[num];
+				num++;
+				lattice[2 * i][j][1] = &spins[num];
+				num++;
+			}
+		for (j = 0; j < (L - 1) / 2; j++)
+			if (unirnd(eng) < q)
+			{
+				lattice[2 * i + 1][j][0] = &spins[num];
+				lattice[2 * i + 1][j][1] = &spins[num];
+				num++;
+			}
+			else
+			{
+				lattice[2 * i + 1][j][0] = &spins[num];
+				num++;
+				lattice[2 * i + 1][j][1] = &spins[num];
+				num++;
+			}
+		lattice[2 * i + 1][(L - 1) / 2][0] = &spins[num];
+		lattice[2 * i + 1][(L - 1) / 2][1] = &spins[num];
+		num++;
+	}
 }
 
 void initialize_spins()
@@ -124,7 +131,7 @@ int find_root(long x, long root[L * L])
         return(x);
     else
     {
-        root[x] = find_root(x, root);
+        root[x] = find_root(root[x], root);
         return(root[x]);
     }
 }
@@ -133,8 +140,11 @@ void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L],
                     long size[L * L])
 {
     int i, j;
+	long k;
     nl = 0; // current label;
     long root[L * L];
+	for (k = 0; k < L * L; k++)
+		root[k] = k;
     // first 2 rows of sites
     label[lattice[0][0][0] - spins] = nl++; // first column
     for (j = 1; j < (L + 1) / 2; j++)
@@ -296,7 +306,6 @@ void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L],
         else
             label[lattice[2 * i + 1][(L - 1) / 2][0] - spins] = nl++;
     }
-    long k;
     for (k = 0; k < num; k++)
         label[k] = find_root(label[k], root);
     for (k = 0; k < nl; k++)
@@ -316,7 +325,7 @@ void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L],
         }
 }
 
-void flip_cluster(long nl, long label[L * L])
+void flip_clusters(long nl, long label[L * L])
 {
     long i;
     bool flip[L * L];
@@ -355,13 +364,14 @@ void measure(long nl, long label[L * L], long size[L * L],
 void export_data(double mag[M], double mag2[M], double mag4[M])
 {
     using namespace std;
-    ofstream file("mag.bin", ios::out | ios::binary);
+	ofstream file;
+    file.open("mag.bin", ios::out | ios::binary);
     file.write((char *)mag, sizeof(double) * M);
 	file.close();
-    ofstream file("mag2.bin", ios::out | ios::binary);
+    file.open("mag2.bin", ios::out | ios::binary);
     file.write((char *)mag2, sizeof(double) * M);
 	file.close();
-    ofstream file("mag4.bin", ios::out | ios::binary);
+    file.open("mag4.bin", ios::out | ios::binary);
     file.write((char *)mag4, sizeof(double) * M);
 	file.close();
 }
@@ -378,7 +388,7 @@ void monte_carlo()
     for (i = 0; i < M; i++)
     {
         construct_graph(1 - std::exp(-2 / T), conn);
-        find_cluster(conn, nl, label, size);
+        find_clusters(conn, nl, label, size);
         measure(nl, label, size, mag[i], mag2[i], mag4[i]);
         flip_clusters(nl, label);
     }
