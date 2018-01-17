@@ -361,7 +361,7 @@ void measure(long nl, long label[L * L], long size[L * L],
     mag4 /= temp * temp;
 }
 
-void export_data(double mag[M], double mag2[M], double mag4[M])
+void export_data(double *mag, double *mag2, double *mag4)
 {
     using namespace std;
 	ofstream file;
@@ -382,7 +382,7 @@ void monte_carlo()
     long nl; // number of labels
     bool conn[L - 2][L];
     long label[L * L], size[L * L];
-    double mag[M], mag2[M], mag4[M];
+    double *mag = new double[M], *mag2 = new double[M], *mag4 = new double[M];
     lattice_structure();
     initialize_spins();
     for (i = 0; i < M; i++)
@@ -393,6 +393,9 @@ void monte_carlo()
         flip_clusters(nl, label);
     }
     export_data(mag, mag2, mag4);
+	delete[] mag;
+	delete[] mag2;
+	delete[] mag4;
 }
 
 int main()
