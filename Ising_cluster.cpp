@@ -4,7 +4,7 @@
 #include <random>
 
 #define L 11 // L is odd, consider L*L data qubits
-#deffine q 0.5
+#define q 0.5
 #define M 1000 // number of steps
 #define T 1 // temperature
 
@@ -129,7 +129,8 @@ int find_root(long x, long root[L * L])
     }
 }
 
-void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L])
+void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L],
+                    long size[L * L])
 {
     int i, j;
     nl = 0; // current label;
@@ -306,39 +307,86 @@ void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L])
         {
             root[label[k]] = nl;
             label[k] = nl++;
+            size[label[k]] = 1;
         }
         else
+        {
             label[k] = root[label[k]];
+            size[label[k]]++;
+        }
 }
 
-void flip_cluster()
+void flip_cluster(long nl, long label[L * L])
 {
-    
+    long i;
+    bool flip[L * L];
+    for (i = 0; i < nl; i++)
+        if (unirnd(eng) < 0.5)
+            flip[i] = 0;
+        else
+            flip[i] = 1;
+    for (i = 0; i < num; i++)
+        if (flip[label[i]])
+            spins[i] = -spins[i];
 }
 
-void monte_carlo(double E[M], double mag[M])
+void measure(long nl, long label[L * L], long size[L * L],
+        double &mag, double &mag2, double &mag4)
+{
+    long i, temp;
+    mag = 0;
+    for (i = 0; i < num; i++)
+        mag += spins[i];
+    mag /= num;
+    mag2 = 0;
+    mag4 = 0;
+    for (i = 0; i < nl; i++)
+    {
+        temp = size[i] * size[i];
+        mag2 += temp;
+        mag4 += temp * temp;
+    }
+    mag4 = 3 * mag2 * mag2 - 2 * mag4;
+    temp = num * num;
+    mag2 /= temp;
+    mag4 /= temp * temp;
+}
+
+void export_data(double mag[M], double mag2[M], double mag4[M])
+{
+    using namespace std;
+    ofstream file("mag.bin", ios::out | ios::binary);
+    file.write((char *)mag, sizeof(double) * M);
+	file.close();
+    ofstream file("mag2.bin", ios::out | ios::binary);
+    file.write((char *)mag2, sizeof(double) * M);
+	file.close();
+    ofstream file("mag4.bin", ios::out | ios::binary);
+    file.write((char *)mag4, sizeof(double) * M);
+	file.close();
+}
+
+void monte_carlo()
 {
     long i;
     long nl; // number of labels
     bool conn[L - 2][L];
-    long label[L * L];
-    double E[M], E2[M], mag[M], mag2[M], mag4[M];
+    long label[L * L], size[L * L];
+    double mag[M], mag2[M], mag4[M];
     lattice_structure();
     initialize_spins();
     for (i = 0; i < M; i++)
     {
         construct_graph(1 - std::exp(-2 / T), conn);
-        find_cluster(conn, nl, label);
+        find_cluster(conn, nl, label, size);
+        measure(nl, label, size, mag[i], mag2[i], mag4[i]);
+        flip_clusters(nl, label);
     }
-}
-
-void data_analysis(double E[M], double mag[M])
-{
-    
+    export_data(mag, mag2, mag4);
 }
 
 int main()
 {
-    monte_carlo(E, mag);
-    
+    monte_carlo();
+    return(0);
 }
