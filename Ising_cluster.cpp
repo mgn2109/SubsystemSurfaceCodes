@@ -12,6 +12,7 @@
 
 int *lattice[L - 1][(L + 1) / 2][2];
 int spins[L * L]; // spin number is less than L^2
+bool conn[L - 2][L]; // cluster connectivity
 int num; // number of spins
 
 std::default_random_engine eng(0);
@@ -66,7 +67,7 @@ void initialize_spins()
         spins[i] = 1;
 }
 
-void construct_graph(double p, bool conn[L - 2][L])
+void construct_graph(double p)
 {
     int i, j;
     // if two adjacent spins are parallel, connect them with probability p
@@ -127,7 +128,7 @@ void construct_graph(double p, bool conn[L - 2][L])
     }
 }
 
-int find_root(long x, long root[L * L])
+int find_root(long x, long *root)
 {
     if (root[x] == x)
         return(x);
@@ -138,13 +139,12 @@ int find_root(long x, long root[L * L])
     }
 }
 
-void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L],
-                    long size[L * L])
+void find_clusters(long &nl, long *label, long *size)
 {
     int i, j;
 	long k;
     nl = 0; // current label;
-    long root[L * L];
+    long *root = new long[L * L];
 	for (k = 0; k < L * L; k++)
 		root[k] = k;
     // first 2 rows of sites
@@ -325,9 +325,10 @@ void find_clusters(bool conn[L - 2][L], long &nl, long label[L * L],
             label[k] = root[label[k]];
             size[label[k]]++;
         }
+    delete[] root;
 }
 
-void flip_clusters(long nl, long label[L * L])
+void flip_clusters(long nl, long *label)
 {
     long i;
     bool flip[L * L];
@@ -347,7 +348,7 @@ long long tonumber(long nl, long lab1, long lab2)
     return((long long)nl * min(lab1, lab2) + max(lab1, lab2));
 }
 
-void measure(long nl, long label[L * L], double &E, double &E2)
+void measure(long nl, long *label, double &E, double &E2)
 {
     int i, j;
     long k, nb = 0;
@@ -476,20 +477,21 @@ void monte_carlo()
 {
     long i;
     long nl; // number of labels
-    bool conn[L - 2][L];
-    long label[L * L], size[L * L];
+    long *label = new long[L * L], *size = new long[L * L];
     double *E = new double[M], *E2 = new double[M];
     lattice_structure();
     initialize_spins();
     for (i = 0; i < M; i++)
     {
-        construct_graph(1 - std::exp(-2.0 / T), conn);
-        find_clusters(conn, nl, label, size);
+        construct_graph(1 - std::exp(-2.0 / T));
+        find_clusters(nl, label, size);
         measure(nl, label, E[i], E2[i]);
         flip_clusters(nl, label);
     }
     //export_data(E, E2);
     data_analysis(E, E2);
+    delete[] label;
+    delete[] size;
 	delete[] E;
 	delete[] E2;
 }
