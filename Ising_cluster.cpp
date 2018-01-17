@@ -342,7 +342,8 @@ void flip_clusters(long nl, long label[L * L])
 void measure(long nl, long label[L * L], long size[L * L],
         double &mag, double &mag2, double &mag4)
 {
-    long i, temp;
+    long i;
+    double temp;
     mag = 0;
     for (i = 0; i < num; i++)
         mag += spins[i];
