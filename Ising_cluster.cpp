@@ -139,7 +139,7 @@ int find_root(long x, long *root)
     }
 }
 
-void find_clusters(long &nl, long *label, long *size)
+void find_clusters(long &nl, long *label, long *size, long *H)
 {
     int i, j;
 	long k;
@@ -326,17 +326,41 @@ void find_clusters(long &nl, long *label, long *size)
             size[label[k]]++;
         }
     delete[] root;
+    
+    // count H in each cluster
+    for (k = 0; k < nl; k++)
+        H[k] = 0;
+    H[label[lattice[0][0][1] - spins]] += *lattice[0][0][1];
+    for (j = 1; j < (L + 1) / 2; j++)
+    {
+        H[label[lattice[0][j][0] - spins]] += *lattice[0][j][0];
+        H[label[lattice[0][j][1] - spins]] += *lattice[0][j][1];
+    }
+    for (j = 0; j < (L - 1) / 2; j++)
+    {
+        H[label[lattice[L - 2][j][0] - spins]] += *lattice[L - 2][j][0];
+        H[label[lattice[L - 2][j][1] - spins]] += *lattice[L - 2][j][1];
+    }
+    H[label[lattice[L - 2][(L - 1) / 2][0] - spins]] +=
+                                        *lattice[L - 2][(L - 1) / 2][0];
 }
 
-void flip_clusters(long nl, long *label)
+void flip_clusters(double p, long nl, long *label, long *H)
 {
     long i;
     bool flip[L * L];
+    double temp;
     for (i = 0; i < nl; i++)
-        if (unirnd(eng) < 0.5)
-            flip[i] = 0;
+    {
+        if (H[i] > 0)
+            temp = std::pow(p, H[i]);
         else
+            temp = 1;
+        if (unirnd(eng) < 0.5 * temp)
             flip[i] = 1;
+        else
+            flip[i] = 0;
+    }
     for (i = 0; i < num; i++)
         if (flip[label[i]])
             spins[i] = -spins[i];
@@ -348,128 +372,84 @@ long long tonumber(long nl, long lab1, long lab2)
     return((long long)nl * min(lab1, lab2) + max(lab1, lab2));
 }
 
-void measure(long nl, long *label, double &E, double &E2)
+void measure(double &E, double &mag)
 {
     int i, j;
-    long k, nb = 0;
-    long long *bond = new long long[(L - 2) * L];
+    long k;
     E = 0;
-    if (label[lattice[0][0][1] - spins] == label[lattice[1][0][0] - spins])
-        E++;
-    else
-        bond[nb++] = tonumber(nl, label[lattice[0][0][1] - spins],
-                                label[lattice[1][0][0] - spins]);
+    E += (*lattice[0][0][1]) * (*lattice[1][0][0]);
+    E += *lattice[0][0][1]; // H field
     for (j = 1; j <= (L - 1) / 2; j++)
     {
-        if (label[lattice[1][j - 1][1] - spins] ==
-                label[lattice[0][j][0] - spins])
-            E++;
-        else
-            bond[nb++] = tonumber(nl, label[lattice[1][j - 1][1] - spins],
-                                    label[lattice[0][j][0] - spins]);
-        if (label[lattice[0][j][1] - spins] ==
-                label[lattice[1][j][0] - spins])
-            E++;
-        else
-            bond[nb++] = tonumber(nl, label[lattice[0][j][1] - spins],
-                                    label[lattice[1][j][0] - spins]);
+        E += (*lattice[1][j - 1][1]) * (*lattice[0][j][0]);
+        E += (*lattice[0][j][1]) * (*lattice[1][j][0]);
+        E += *lattice[0][j][0] + *lattice[0][j][1]; // H field
     }
     for (i = 1; i < (L - 1) / 2; i++)
     {
-        if (label[lattice[2 * i][0][1] - spins] ==
-                label[lattice[2 * i - 1][0][0] - spins])
-            E++;
-        else
-            bond[nb++] = tonumber(nl, label[lattice[2 * i][0][1] - spins],
-                                    label[lattice[2 * i - 1][0][0] - spins]);
+        E += (*lattice[2 * i][0][1]) * (*lattice[2 * i - 1][0][0]);
         for (j = 1; j <= (L - 1) / 2; j++)
         {
-            if (label[lattice[2 * i - 1][j - 1][1] - spins] ==
-                    label[lattice[2 * i][j][0] - spins])
-                E++;
-            else
-                bond[nb++] = tonumber(nl,
-                        label[lattice[2 * i - 1][j - 1][1] - spins],
-                        label[lattice[2 * i][j][0] - spins]);
-            if (label[lattice[2 * i][j][1] - spins] ==
-                    label[lattice[2 * i - 1][j][0] - spins])
-                E++;
-            else
-                bond[nb++] = tonumber(nl,
-                        label[lattice[2 * i][j][1] - spins],
-                        label[lattice[2 * i - 1][j][0] - spins]);
+            E += (*lattice[2 * i - 1][j - 1][1]) * (*lattice[2 * i][j][0]);
+            E += (*lattice[2 * i][j][1]) * (*lattice[2 * i - 1][j][0]);
         }
-        if (label[lattice[2 * i][0][1] - spins] ==
-                label[lattice[2 * i + 1][0][0] - spins])
-            E++;
-        else
-            bond[nb++] = tonumber(nl, label[lattice[2 * i][0][1] - spins],
-                                    label[lattice[2 * i + 1][0][0] - spins]);
+        E += (*lattice[2 * i][0][1]) * (*lattice[2 * i + 1][0][0]);
         for (j = 1; j <= (L - 1) / 2; j++)
         {
-            if (label[lattice[2 * i + 1][j - 1][1] - spins] ==
-                    label[lattice[2 * i][j][0] - spins])
-                E++;
-            else
-                bond[nb++] = tonumber(nl,
-                        label[lattice[2 * i + 1][j - 1][1] - spins],
-                        label[lattice[2 * i][j][0] - spins]);
-            if (label[lattice[2 * i][j][1] - spins] ==
-                    label[lattice[2 * i + 1][j][0] - spins])
-                E++;
-            else
-                bond[nb++] = tonumber(nl,
-                        label[lattice[2 * i][j][1] - spins],
-                        label[lattice[2 * i + 1][j][0] - spins]);
+            E += (*lattice[2 * i + 1][j - 1][1]) * (*lattice[2 * i][j][0]);
+            E += (*lattice[2 * i][j][1]) * (*lattice[2 * i + 1][j][0]);
         }
     }
+    // H field
+    for (j = 0; j < (L - 1) / 2; j++)
+        E += *lattice[L - 2][j][0] + *lattice[L - 2][j][1];
+    E += *lattice[L - 2][(L - 1) / 2][0];
     E = -E / num;
-    std::sort(bond, bond + nb);
-    long long last = -1;
-    long count = 0;
-    E2 = 0;
-    for (k = 0; k < nb; k++)
-        if (bond[k] == last)
-            count++;
-        else
-        {
-            E2 += count * count;
-            last = bond[k];
-            count = 1;
-        }
-    E2 += count * count;
-    E2 = E2 / num / num  + E * E;
-    delete[] bond;
+    
+    mag = 0;
+    for (k = 0; k < num; k++)
+        mag += spins[k];
+    mag /= num;
 }
 
-void export_data(double *E, double *E2)
+void export_data(double *E, double *mag)
 {
     using namespace std;
 	ofstream file;
     file.open("E.bin", ios::out | ios::binary);
     file.write((char *)E, sizeof(double) * M);
 	file.close();
-    file.open("E2.bin", ios::out | ios::binary);
-    file.write((char *)E2, sizeof(double) * M);
+    file.open("mag.bin", ios::out | ios::binary);
+    file.write((char *)mag, sizeof(double) * M);
 	file.close();
 }
 
-void data_analysis(double *E, double *E2)
+void data_analysis(double *E, double *mag)
 {
     using namespace std;
     long i;
-    double E_av = 0, E2_av = 0;
+    double E_av = 0, E2_av = 0, mag_av = 0, mag2_av = 0, mag4_av = 0;
     for (i = M / 10; i < M; i++) // skip initial 1/10 steps to thermalize
     {
         E_av += E[i];
-        E2_av += E2[i];
+        E2_av += E[i] * E[i];
+        mag_av += abs(mag[i]);
+        double temp = mag[i] * mag[i];
+        mag2_av += temp;
+        mag4_av += temp * temp;
     }
     E_av /= (M - M / 10);
     E2_av /= (M - M / 10);
+    mag_av /= (M - M / 10);
+    mag2_av /= (M - M / 10);
+    mag4_av /= (M - M / 10);
     cout << "Number of spins is: " << num << endl;
     cout << "At temperature T = " << T << endl;
     cout << "Average energy E = " << E_av << endl;
     cout << "Specific heat C = " << (E2_av - E_av * E_av) / T / T * num
+        << endl;
+    cout << "Average magnetization M = " << mag_av << endl;
+    cout << "Binder cumulant U = " << 1 - mag4_av / 3 / mag2_av / mag2_av
         << endl;
 }
 
@@ -477,23 +457,26 @@ void monte_carlo()
 {
     long i;
     long nl; // number of labels
-    long *label = new long[L * L], *size = new long[L * L];
-    double *E = new double[M], *E2 = new double[M];
+    long *label = new long[L * L], *size = new long[L * L],
+        *H = new long[L * L]; // spins subjected to magnetic field in a
+                              // cluster; a field of 2 counts for 2 spins
+    double *E = new double[M], *mag = new double[M];
     lattice_structure();
     initialize_spins();
     for (i = 0; i < M; i++)
     {
         construct_graph(1 - std::exp(-2.0 / T));
-        find_clusters(nl, label, size);
-        measure(nl, label, E[i], E2[i]);
-        flip_clusters(nl, label);
+        find_clusters(nl, label, size, H);
+        measure(E[i], mag[i]);
+        flip_clusters(std::exp(-2.0 / T), nl, label, H);
     }
-    //export_data(E, E2);
-    data_analysis(E, E2);
+    //export_data(E, mag);
+    data_analysis(E, mag);
     delete[] label;
     delete[] size;
+    delete[] H;
 	delete[] E;
-	delete[] E2;
+    delete[] mag;
 }
 
 int main()
