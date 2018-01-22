@@ -3,19 +3,22 @@
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
+#include <string>
 #include <random>
 
 #define L 101 // L is odd, consider L*L data qubits
-#define q 0.5
-#define M 100000 // number of steps
-#define T 1 // temperature
+double q;
+double T; // temperature
+long M = 100000; // number of steps
+int seed = 0;
+std::string str;
 
 int *lattice[L - 1][(L + 1) / 2][2];
 int spins[L * L]; // spin number is less than L^2
 bool conn[L - 2][L]; // cluster connectivity
 int num; // number of spins
 
-std::default_random_engine eng(0);
+std::default_random_engine eng;
 std::uniform_real_distribution<double> unirnd(0.0, 1.0);
 
 void lattice_structure()
@@ -443,14 +446,16 @@ void data_analysis(double *E, double *mag)
     mag_av /= (M - M / 10);
     mag2_av /= (M - M / 10);
     mag4_av /= (M - M / 10);
-    cout << "Number of spins is: " << num << endl;
-    cout << "At temperature T = " << T << endl;
-    cout << "Average energy E = " << E_av << endl;
-    cout << "Specific heat C = " << (E2_av - E_av * E_av) / T / T * num
+	ofstream file(str);
+    file << "Number of spins is: " << num << endl;
+    file << "At temperature T = " << T << endl;
+    file << "Average energy E = " << E_av << endl;
+    file << "Specific heat C = " << (E2_av - E_av * E_av) / T / T * num
         << endl;
-    cout << "Average magnetization M = " << mag_av << endl;
-    cout << "Binder cumulant U = " << 1 - mag4_av / 3 / mag2_av / mag2_av
+    file << "Average magnetization M = " << mag_av << endl;
+    file << "Binder cumulant U = " << 1 - mag4_av / 3 / mag2_av / mag2_av
         << endl;
+	file.close();
 }
 
 void monte_carlo()
@@ -479,8 +484,23 @@ void monte_carlo()
     delete[] mag;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+	using namespace std;
+	if (argc < 3)
+	{
+		cout << "Not enough parameters!" << endl;
+		return(-1);
+	}
+	q = atof(argv[1]);
+	T = atof(argv[2]);
+	if (argc > 3)
+		M = atol(argv[3]);
+	if (argc > 4)
+		seed = atoi(argv[4]);
+	str = "L" + to_string(L) + "_q" + argv[1] + "_T" + argv[2]
+		+ "_M" + to_string(M) + "_seed" + to_string(seed) + ".txt";
+	eng.seed(seed);
     monte_carlo();
     return(0);
 }
