@@ -191,10 +191,33 @@ void diff(long id, double &dE, double &dmag)
 	dmag = -2 * spins[id];
 }
 
-void monte_carlo()
+void show_average(long long step, double E_sum, double E2_sum,
+	double mag_sum, double mag2_sum, double mag4_sum)
 {
 	using namespace std;
+	E_sum /= step;
+	E2_sum /= step;
+	mag_sum /= step;
+	mag2_sum /= step;
+	mag4_sum /= step;
+	ofstream file(str, ios::app);
+	file << "q = " << q << ", p = " << exp(-nlogp) << ", L = " << L << endl;
+	file << "Number of spins is: " << num << endl;
+	file << "Current number of steps = " << step << endl;
+	file << "At temperature T = " << T << endl;
+	file << "Average energy E = " << E_sum << endl;
+	file << "Specific heat C = " << (E2_sum - E_sum * E_sum) / T / T * num
+		<< endl;
+	file << "Average magnetization M = " << mag_sum << endl;
+	file << "Binder cumulant U = " << 1 - mag4_sum / 3 / mag2_sum / mag2_sum
+		<< endl;
+	file.close();
+}
+
+void monte_carlo()
+{
 	long id;
+    long long k = 1;
 	double dE, dmag, E, mag, E_sum = 0, E2_sum = 0,
 		mag_sum = 0, mag2_sum = 0, mag4_sum = 0;
 	lattice_structure();
@@ -222,24 +245,13 @@ void monte_carlo()
 			temp *= temp;
 			mag2_sum += temp;
 			mag4_sum += temp * temp;
+			if (i + 1 - M / 10 == k)
+			{
+				show_average(k, E_sum, E2_sum, mag_sum, mag2_sum, mag4_sum);
+				k *= 2;
+			}
 		}
 	}
-	E_sum /= (M - M / 10);
-	E2_sum /= (M - M / 10);
-	mag_sum /= (M - M / 10);
-	mag2_sum /= (M - M / 10);
-	mag4_sum /= (M - M / 10);
-	ofstream file(str);
-	file << "q = " << q << ", p = " << exp(-nlogp) << ", L = " << L << endl;
-	file << "Number of spins is: " << num << endl;
-	file << "At temperature T = " << T << endl;
-	file << "Average energy E = " << E_sum << endl;
-	file << "Specific heat C = " << (E2_sum - E_sum * E_sum) / T / T * num
-		<< endl;
-	file << "Average magnetization M = " << mag_sum << endl;
-	file << "Binder cumulant U = " << 1 - mag4_sum / 3 / mag2_sum / mag2_sum
-		<< endl;
-	file.close();
 }
 
 int main(int argc, char *argv[])
