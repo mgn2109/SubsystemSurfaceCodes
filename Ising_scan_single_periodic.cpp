@@ -240,7 +240,7 @@ void monte_carlo()
 			temp = E / num;
 			E_sum += temp;
 			E2_sum += temp * temp;
-			temp = abs(mag) / num;
+			temp = std::abs(mag) / num;
 			mag_sum += temp;
 			temp *= temp;
 			mag2_sum += temp;
