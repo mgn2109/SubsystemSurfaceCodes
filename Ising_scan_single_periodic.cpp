@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <string>
 #include <random>
+#include <iomanip>
 
 #define L 41 // L is odd, consider L*L data qubits
 double q;
@@ -19,7 +20,7 @@ int spins[L * L]; // spin number is less than L^2
 int coup[L - 1][L + 1]; // ferro (1) or antiferro (-1)
 int location[L * L][3]; // row and column indices for each spin
 // and left (0) or right (1) or both (-1)
-int num; // number of spins
+long num; // number of spins
 
 std::default_random_engine eng;
 std::uniform_real_distribution<double> unirnd(0.0, 1.0);
@@ -201,7 +202,8 @@ void show_average(long long step, double E_sum, double E2_sum,
 	mag2_sum /= step;
 	mag4_sum /= step;
 	ofstream file(str, ios::app);
-	file << "q = " << q << ", p = " << exp(-nlogp) << ", L = " << L << endl;
+	file << "q = " << q << ", p = " << setprecision(16) << exp(-nlogp)
+        << ", L = " << L << endl;
 	file << "Number of spins is: " << num << endl;
 	file << "Current number of steps = " << step << endl;
 	file << "At temperature T = " << T << endl;
