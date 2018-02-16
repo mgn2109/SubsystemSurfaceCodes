@@ -22,7 +22,7 @@ int location[L * L][3]; // row and column indices for each spin
 // and left (0) or right (1) or both (-1)
 long num; // number of spins
 
-std::default_random_engine eng;
+std::mt19937_64 eng;
 std::uniform_real_distribution<double> unirnd(0.0, 1.0);
 
 void lattice_structure()
