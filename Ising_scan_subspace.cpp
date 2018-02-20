@@ -7,21 +7,25 @@
 #include <random>
 #include <iomanip>
 
-#define L 11 // L is odd, consider L*L data qubits
-double q = 1 ; // probability of fix
-double nlogp = 3; // p parameter given as -log p
-double T; // temperature
-long long M = 1000; // number of steps
+
+
+#define L 11 //L is odd, consider L*L data qubits.
+double q = 1 ; //probability of minimal X-type plaquette.
+double nlogp = 3; //p parameter given as -ln(p).
+double T; //temperature
+long long M = 1000; //number of steps
 int seed = 1; //seed number
 std::string str; //output name
 
+
 int lattice_template[L - 1][L - 1]; //Template that gives connectivity and spin structure of lattice.
 int *gauge_generators[L - 1][L]; //Indexes the vertical gauge generators as pointers to spins.
-int mySpins[L * L];  //(Over-)indexes the spins.
-int myCoup[L][L];  //Determines the interactions, one per qubit.
-long counter; //number of mySpins
+int mySpins[L * L]; //(Over-)indexes the spins.
+int myCoup[L][L]; //Determines the interactions, ferro- or anti-, one per qubit.
+long counter;  //number of mySpins
 int myLocation[L * L][2][2]; //holds locations of spins in terms of their "upper left corner qubit"
-                         //and "upper right corner qubit"
+                             //and "upper right corner qubit."
+
 
 std::mt19937_64 eng;
 std::uniform_real_distribution<double> unirnd(0.0, 1.0);
@@ -44,6 +48,8 @@ void generate_lattice_template()  //Template that describes spin structure and c
 				lattice_template[i][j] = 0;
 		}
 	}
+
+
 
 	/*// Test.
 
@@ -108,6 +114,8 @@ void assign_generators_to_spins() //Points the gauge generators to their corresp
 		}
 	}
 
+
+
 	/*//Test.
 
 	std::cout << std::endl << "assign_generators_to_spins" << std::endl << std::endl;
@@ -154,6 +162,8 @@ void initialize_couplings() //Initialize frustrated couplings: one per qubit.
 				myCoup[i][j] = 1;
 		}
 	}
+
+
 
 	/*//Test.
 
@@ -220,6 +230,8 @@ void myMeasure(double &E, double &mag)
 	for (k = 0; k < counter; k++)
 		mag += mySpins[k];
 
+
+
 	/*//Test.
 
 	std::cout << "myMeasure" << std::endl;
@@ -262,8 +274,6 @@ void show_average(long long step, double E_sum, double E2_sum,
 
 void myDiff(long id, double &dE, double &dmag)
 {
-	//I should once build a full connectivity list.  The first index counts the spins.
-	//The second index counts the adjacency...
 	
 	dmag = -2 * mySpins[id];  //Change in magnetization.
 
@@ -318,7 +328,10 @@ void myDiff(long id, double &dE, double &dmag)
 		}
 	}
 
-	dE *= 2; //difference is double local energy.
+	dE *= 2; //difference is double the local energy.
+
+
+
 
 	/*//Test
 
@@ -361,13 +374,15 @@ void my_monte_carlo()
 		id = randint(eng); //id indexes the candidate spin to be flipped.
 
 		myDiff(id, dE, dmag); //this should compute the change in energy dE and change in
-							//magnetization
+							  //magnetization
+
 		if (unirnd(eng) < std::exp(-dE / T))
 		{
 			mySpins[id] = -mySpins[id];
 			E += dE;
 			mag += dmag;
 		}
+		
 		if (i >= M / 10)
 		{
 			double temp;
