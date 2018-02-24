@@ -351,6 +351,63 @@ void export_data(double *mag2, double *mag4)
 	file.close();
 }
 
+double mean(double *arr, long size)
+{
+	double v = 0;
+	for (long i = 0; i < size; i++)
+		v += arr[i];
+	v /= size;
+	return(v);
+}
+
+double std_dev(double *arr, long size)
+{
+	double v = 0, u = mean(arr, size);
+	for (long i = 0; i < size; i++)
+		v += (arr[i] - u) * (arr[i] - u);
+	v /= size;
+	return(std::sqrt(v));
+}
+
+void auto_correlation(double *mag2, double *mag4)
+{
+	// This function will destroy the values inside mag2 and mag4
+	// thus must be placed at the end of the program.
+	using namespace std;
+	int i, l = 0;
+	long step = 2;
+	while (step <= M)
+	{
+		l++;
+		step *= 2;
+	}
+	step /= 2;
+	double *cor1 = new double[l], *cor2 = new double[l];
+	mag2 = mag2 + M - step;
+	mag4 = mag4 + M - step;
+	for (i = 0; i < l; i++)
+	{
+		cor1[i] = std_dev(mag2, step) / sqrt(step - 1);
+		cor2[i] = std_dev(mag4, step) / sqrt(step - 1);
+		step /= 2;
+		for (long j = 0; j < step; j++)
+		{
+			mag2[j] = (mag2[2 * j] + mag2[2 * j + 1]) / 2;
+			mag4[j] = (mag4[2 * j] + mag4[2 * j + 1]) / 2;
+		}
+	}
+	ofstream file("auto_cor_" + str + ".txt");
+	for (i = 0; i < l; i++)
+		file << cor1[i] << ' ';
+	file << endl;
+	for (i = 0; i < l; i++)
+		file << cor2[i] << ' ';
+	file << endl;
+	file.close();
+	delete[] cor1;
+	delete[] cor2;
+}
+
 void data_analysis(double *mag2, double *mag4)
 {
     using namespace std;
@@ -363,7 +420,7 @@ void data_analysis(double *mag2, double *mag4)
     }
     mag2_av /= (M - M / 10);
     mag4_av /= (M - M / 10);
-	ofstream file(str);
+	ofstream file(str + ".txt");
     file << "Number of spins is: " << num << endl;
     file << "At temperature T = " << T << endl;
     file << "Binder cumulant U = " << 1 - mag4_av / 3 / mag2_av / mag2_av
@@ -388,6 +445,7 @@ void monte_carlo()
     }
     export_data(mag2, mag4);
     data_analysis(mag2, mag4);
+	auto_correlation(mag2, mag4);
     delete[] label;
     delete[] size;
 	delete[] mag2;
@@ -415,7 +473,7 @@ int main(int argc, char *argv[])
 	if (argc > 4)
 		seed = atoi(argv[4]);
 	str = "L" + to_string(L) + "_q" + argv[1] + "_nlogp" + argv[2]
-		+ "_M" + to_string(M) + "_seed" + to_string(seed) + ".txt";
+		+ "_M" + to_string(M) + "_seed" + to_string(seed);
 	eng.seed(seed);
     monte_carlo();
     return(0);
