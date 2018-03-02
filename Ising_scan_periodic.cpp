@@ -495,7 +495,8 @@ int main(int argc, char *argv[])
 	{
 		str = "L" + to_string(L) + "_q" + argv[1] + "_nlogp" + argv[2]
 			+ "_M" + to_string(M) + "_seed" + to_string(seed);
-		eng.seed(seed);
+		seed_seq seq = { *(long long *)&nlogp, (long long)seed };
+		eng.seed(seq);
 		monte_carlo();
 	}
     return(0);
