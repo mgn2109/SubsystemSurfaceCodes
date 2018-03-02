@@ -11,7 +11,9 @@ double q;
 double nlogp; // p parameter given as -log p
 double T; // temperature
 long M = 1000000; // number of steps
-int seed = 0;
+int N = 1; // number of trials
+int n_proc = 1; // number of proc.
+int id_proc = 0; // id of this proc.
 std::string str;
 
 int *lattice[L - 1][(L + 1) / 2][2];
@@ -471,10 +473,30 @@ int main(int argc, char *argv[])
 	if (argc > 3)
 		M = atol(argv[3]);
 	if (argc > 4)
-		seed = atoi(argv[4]);
-	str = "L" + to_string(L) + "_q" + argv[1] + "_nlogp" + argv[2]
-		+ "_M" + to_string(M) + "_seed" + to_string(seed);
-	eng.seed(seed);
-    monte_carlo();
+		N = atoi(argv[4]);
+	if (argc > 6)
+	{
+		n_proc = atoi(argv[5]);
+		id_proc = atoi(argv[6]);
+	}
+	int start, stop; // seed in [start, stop)
+	int quotient = N / n_proc, remainder = N % n_proc;
+	if (id_proc < remainder)
+	{
+		start = id_proc * (quotient + 1);
+		stop = (id_proc + 1) * (quotient + 1);
+	}
+	else
+	{
+		start = id_proc * quotient + remainder;
+		stop = (id_proc + 1) * quotient + remainder;
+	}
+	for (int seed = start; seed < stop; seed++)
+	{
+		str = "L" + to_string(L) + "_q" + argv[1] + "_nlogp" + argv[2]
+			+ "_M" + to_string(M) + "_seed" + to_string(seed);
+		eng.seed(seed);
+		monte_carlo();
+	}
     return(0);
 }
