@@ -29,7 +29,7 @@ Bond2Type ***A2; // adjacency list for 2-body, pointing to entries of bond2
 Bond4Type ***A4; // adjacency list for 4-body, pointing to entries of bond4
 int n; // number of clusters
 int *cluster; // cluster label for each spin, ranging from 1 to n
-int *cluster_size; // size of each cluster
+int *cluster_size; // size of each cluster, index from 1 to n
 
 double nlogp; // p parameter given as -log p
 double T; // temperature
@@ -186,47 +186,49 @@ void BFS(int s0)
 		int s = *head;
 		head++;
 		for (int i = 0; i < deg2[s]; i++)
-		{
-			if (cluster[A2[s][i]->x] == 0)
+			if (A2[s][i]->conn)
 			{
-				tail++;
-				*tail = A2[s][i]->x;
-				cluster[A2[s][i]->x] = n;
+				if (cluster[A2[s][i]->x] == 0)
+				{
+					tail++;
+					*tail = A2[s][i]->x;
+					cluster[A2[s][i]->x] = n;
+				}
+				if (cluster[A2[s][i]->y] == 0)
+				{
+					tail++;
+					*tail = A2[s][i]->y;
+					cluster[A2[s][i]->y] = n;
+				}
 			}
-			if (cluster[A2[s][i]->y] == 0)
-			{
-				tail++;
-				*tail = A2[s][i]->y;
-				cluster[A2[s][i]->y] = n;
-			}
-		}
 		for (int i = 0; i < deg4[s]; i++)
-		{
-			if (cluster[A4[s][i]->x] == 0)
+			if (A4[s][i]->conn)
 			{
-				tail++;
-				*tail = A4[s][i]->x;
-				cluster[A4[s][i]->x] = n;
+				if (cluster[A4[s][i]->x] == 0)
+				{
+					tail++;
+					*tail = A4[s][i]->x;
+					cluster[A4[s][i]->x] = n;
+				}
+				if (cluster[A4[s][i]->y] == 0)
+				{
+					tail++;
+					*tail = A4[s][i]->y;
+					cluster[A4[s][i]->y] = n;
+				}
+				if (cluster[A4[s][i]->z] == 0)
+				{
+					tail++;
+					*tail = A4[s][i]->z;
+					cluster[A4[s][i]->z] = n;
+				}
+				if (cluster[A4[s][i]->w] == 0)
+				{
+					tail++;
+					*tail = A4[s][i]->w;
+					cluster[A4[s][i]->w] = n;
+				}
 			}
-			if (cluster[A4[s][i]->y] == 0)
-			{
-				tail++;
-				*tail = A4[s][i]->y;
-				cluster[A4[s][i]->y] = n;
-			}
-			if (cluster[A4[s][i]->z] == 0)
-			{
-				tail++;
-				*tail = A4[s][i]->z;
-				cluster[A4[s][i]->z] = n;
-			}
-			if (cluster[A4[s][i]->w] == 0)
-			{
-				tail++;
-				*tail = A4[s][i]->w;
-				cluster[A4[s][i]->w] = n;
-			}
-		}
 	}
 
 	delete[] queue;
@@ -243,7 +245,7 @@ void find_clusters()
 		if (cluster[i] == 0)
 			BFS(i);
 
-	for (int i = 0; i < V; i++)
+	for (int i = 1; i <= V; i++)
 		cluster_size[i] = 0;
 	for (int i = 0; i < V; i++)
 		cluster_size[cluster[i]]++;
@@ -260,6 +262,7 @@ void flip_clusters()
     for (int i = 0; i < V; i++)
         if (flip[cluster[i]])
             spins[i] = -spins[i];
+	delete[] flip;
 }
 
 void measure(double &mag2, double &mag4)
@@ -268,7 +271,7 @@ void measure(double &mag2, double &mag4)
     
 	mag2 = 0;
 	mag4 = 0;
-	for (int k = 0; k < n; k++)
+	for (int k = 1; k <= n; k++)
 	{
 		temp = (double)cluster_size[k] * cluster_size[k];
 		mag2 += temp;
