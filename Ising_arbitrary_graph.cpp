@@ -235,7 +235,7 @@ void find_clusters()
 	for (int i = 1; i <= V; i++)
 		cluster_size[i] = 0;
 	for (int i = 0; i < V; i++)
-		cluster_size[cluster[i]]++;
+		cluster_size[cluster[i]] += spins[i];
 }
 
 void flip_clusters()
