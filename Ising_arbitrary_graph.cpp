@@ -9,13 +9,13 @@
 struct Bond2Type
 {
 	int x, y;
-	int J; // ferro (1) or antiferro (-1) for each 2-body bond
+	double J; // ferro (+) or antiferro (-) for each 2-body bond
 	bool conn; // connectivity for 2-body bond in a cluster
 };
 struct Bond4Type
 {
 	int x, y, z, w;
-	int J; // ferro (1) or antiferro (-1) for each 4-body bond
+	double J; // ferro (+) or antiferro (-) for each 4-body bond
 	bool conn; // connectivity for 4-body bond in a cluster
 };
 
@@ -31,10 +31,9 @@ int n; // number of clusters
 int *cluster; // cluster label for each spin, ranging from 1 to n
 int *cluster_size; // size of each cluster, index from 1 to n
 
-double nlogp; // p parameter given as -log p
-double T; // temperature
+double T = 1; // temperature set to 1
 long M = 10000000; // number of steps
-long seed = 0; // random seed
+long long seed = 0; // random seed
 
 std::string str = "output", str_graph = "input.txt";
 
@@ -48,8 +47,8 @@ void lattice_structure()
 	// load graph structure
 	/* File in the following format:
 	V E G
-	i j // E rows of 2-body bonds
-	i j k l // G rows of 4-body bonds
+	i j J // E rows of 2-body bonds
+	i j k l J // G rows of 4-body bonds
 	*/
 	ifstream file(str_graph);
 	file >> V >> E >> G;
@@ -69,13 +68,13 @@ void lattice_structure()
 	// load bonds and compute deg2 and deg4
 	for (int i = 0; i < E; i++)
 	{
-		file >> bond2[i].x >> bond2[i].y;
+		file >> bond2[i].x >> bond2[i].y >> bond2[i].J;
 		deg2[bond2[i].x]++;
 		deg2[bond2[i].y]++;
 	}
 	for (int i = 0; i < G; i++)
 	{
-		file >> bond4[i].x >> bond4[i].y >> bond4[i].z >> bond4[i].w;
+		file >> bond4[i].x >> bond4[i].y >> bond4[i].z >> bond4[i].w >> bond4[i].J;
 		deg4[bond4[i].x]++;
 		deg4[bond4[i].y]++;
 		deg4[bond4[i].z]++;
@@ -113,19 +112,6 @@ void lattice_structure()
 		deg4[bond4[i].z]++;
 		deg4[bond4[i].w]++;
 	}
-
-	// bonds. 1 for ferro, -1 for antiferro
-	double p = std::exp(-nlogp);
-	for (int i = 0; i < E; i++)
-		if (unirnd(eng) < p)
-			bond2[i].J = -1;
-		else
-			bond2[i].J = 1;
-	for (int i = 0; i < G; i++)
-		if (unirnd(eng) < p)
-			bond4[i].J = -1;
-		else
-			bond4[i].J = 1;
 }
 
 void dealloc_data()
@@ -152,24 +138,25 @@ void initialize_spins()
         spins[i] = 1;
 }
 
-void construct_graph(double p0)
+void construct_graph()
 {
     // if two spins are in low-E state, connect them with probability p
     // otherwise they are disconnected
     for (int i = 0; i < E; i++)
-		if (spins[bond2[i].x] * spins[bond2[i].y] == bond2[i].J
-			&& unirnd(eng) < p0)
-			bond2[i].conn = 1;
-		else
+		if (unirnd(eng) < std::exp(-2 * bond2[i].J
+			* spins[bond2[i].x] * spins[bond2[i].y] / T))
 			bond2[i].conn = 0;
+		else
+			bond2[i].conn = 1;
 	// if four spins are in low-E state, connect them with probability p
 	// otherwise they are disconnected
 	for (int i = 0; i < G; i++)
-		if (spins[bond4[i].x] * spins[bond4[i].y] * spins[bond4[i].z]
-			* spins[bond4[i].w] == bond4[i].J && unirnd(eng) < p0)
-			bond4[i].conn = 1;
-		else
+		if (unirnd(eng) < std::exp(-2 * bond4[i].J
+			* spins[bond4[i].x] * spins[bond4[i].y]
+			* spins[bond4[i].z] * spins[bond4[i].w] / T))
 			bond4[i].conn = 0;
+		else
+			bond4[i].conn = 1;
 }
 
 void BFS(int s0)
@@ -376,12 +363,12 @@ void monte_carlo()
     initialize_spins();
     for (int i = 0; i < M; i++)
     {
-        construct_graph(1 - std::exp(-2.0 / T));
+        construct_graph();
         find_clusters();
         measure(mag2[i], mag4[i]);
         flip_clusters();
     }
-    //export_data(mag2, mag4);
+    export_data(mag2, mag4);
     data_analysis(mag2, mag4);
 	auto_correlation(mag2, mag4);
 	delete[] mag2;
@@ -392,27 +379,13 @@ void monte_carlo()
 int main(int argc, char *argv[])
 {
 	using namespace std;
-	if (argc < 3)
-	{
-		cout << "Not enough parameters!" << endl;
-		return(-1);
-	}
-	nlogp = atof(argv[1]);
-	if (nlogp <= log(2.0))
-	{
-		cout << "Error! -log p must be greater than log 2." << endl;
-		return(-1);
-	}
-	T = 2.0 / (log(1 - exp(-nlogp)) + nlogp);
+	if (argc > 1)
+		M = atol(argv[1]);
 	if (argc > 2)
-		M = atol(argv[2]);
-	if (argc > 3)
-		seed = atoi(argv[3]);
+		seed = atoi(argv[2]);
 	
-	str = str + "_nlogp" + argv[1] + "_M" + to_string(M)
-		+ "_seed" + to_string(seed);
-	seed_seq seq = { *(long long *)&nlogp, (long long)seed };
-	eng.seed(seq);
+	str = str + "_M" + argv[1] + "_seed" + argv[2];
+	eng.seed(seed);
 	monte_carlo();
     return(0);
 }
