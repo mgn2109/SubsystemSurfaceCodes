@@ -35,7 +35,7 @@ double T = 1; // temperature set to 1
 long M = 10000000; // number of steps
 long long seed = 0; // random seed
 
-std::string str = "output", str_graph = "input.txt";
+std::string str = "output_for_", str_graph = "input.txt";
 
 std::mt19937_64 eng;
 std::uniform_real_distribution<double> unirnd(0.0, 1.0);
@@ -339,9 +339,8 @@ void auto_correlation(double *mag2, double *mag4)
 void data_analysis(double *mag2, double *mag4)
 {
     using namespace std;
-    long i;
     double mag2_av = 0, mag4_av = 0;
-    for (i = M / 10; i < M; i++) // skip initial 1/10 steps to thermalize
+    for (long i = M / 10; i < M; i++) // skip initial 1/10 steps to thermalize
     {
         mag2_av += mag2[i];
         mag4_av += mag4[i];
@@ -361,7 +360,7 @@ void monte_carlo()
     double *mag2 = new double[M], *mag4 = new double[M];
     lattice_structure();
     initialize_spins();
-    for (int i = 0; i < M; i++)
+    for (long i = 0; i < M; i++)
     {
         construct_graph();
         find_clusters();
@@ -383,8 +382,10 @@ int main(int argc, char *argv[])
 		M = atol(argv[1]);
 	if (argc > 2)
 		seed = atoi(argv[2]);
+	if (argc > 3)
+		str_graph.assign(argv[3]);
 	
-	str = str + "_M" + argv[1] + "_seed" + argv[2];
+	str = str + str_graph + "_M" + to_string(M) + "_seed" + to_string(seed);
 	eng.seed(seed);
 	monte_carlo();
     return(0);
